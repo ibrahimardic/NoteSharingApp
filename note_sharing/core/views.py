@@ -3,17 +3,16 @@ from django.contrib.auth.models import User, auth
 from django.contrib import messages
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
-from .models import Profile, Post
-
+from .models import Profile, Post, LikePost
 
 
 # Create your views here.
-
 @login_required(login_url='signin')
 def index(request):
-    user_object = User.objects.get(username = request.user.username)
+    user_object = User.objects.get(username=request.user.username)
     user_profile = Profile.objects.get(user=user_object)
     return render(request, 'index.html', {'user_profile': user_profile})
+
 
 @login_required(login_url='signin')
 def upload(request):
@@ -22,18 +21,41 @@ def upload(request):
         image = request.FILES.get('image_upload')
         caption = request.POST['caption']
         # Parameter of models.py - Post
-        new_post = Post.objects.create(user=user, image = image, caption = caption)
+        new_post = Post.objects.create(user=user, image=image, caption=caption)
         new_post.save()
-
         return redirect('/')
     else:
         return redirect('/')
 
+
 @login_required(login_url='signin')
+def like_post(request):
+    username = request.user.username
+    post_id = request.GET.get('post_id')
+
+    post = Post.objects.get(id=post_id)
+
+    # filter is used instead of '.get' method to get rid of errors if the post liked twice
+    like_filter = LikePost.objects.filter(
+        post_id=post_id, username=username).first()
+
+    if like_filter == None:
+        new_like = LikePost.objects.create(post_id=post_id, username=username)
+        new_like.save()
+        post.no_of_likes = post.no_of_likes+1
+        post.save()
+        return redirect('/')
+    else:
+        like_filter.delete()
+        post.no_of_likes = post.no_of_likes-1
+        post.save()
+        return redirect('/')
+
+
 def settings(request):
     user_profile = Profile.objects.get(user=request.user)
     if request.method == 'POST':
-        if request.FILES.get('image') ==None:
+        if request.FILES.get('image') == None:
             image = user_profile.profileimg
             bio = request.POST['bio']
             location = request.POST['location']
@@ -77,7 +99,8 @@ def signup(request):
                 user.save()
 
                 # log user in and redirect to settings page
-                user_login = auth.authenticate(username= username, password=password)
+                user_login = auth.authenticate(
+                    username=username, password=password)
                 auth.login(request, user_login)
 
                 # create a profile object for the new user
@@ -91,7 +114,6 @@ def signup(request):
             return redirect('signup')
     else:
         return render(request, 'signup.html')
-
 
 
 def signin(request):
@@ -108,8 +130,6 @@ def signin(request):
             return redirect('/signin')
     else:
         return render(request, 'signin.html')
-
-
 
 
 @login_required(login_url='signin')
