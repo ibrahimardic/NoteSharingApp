@@ -15,11 +15,15 @@ class Profile(models.Model):
     profileimg = models.ImageField(
         upload_to='profile_images', default='blank-profile-picture.png')
     location = models.CharField(max_length=100, blank=True)
+
     def __str__(self):
         return self.user.username
+
+
 class Post(models.Model):
     # It generates unique id, To say it's initial id, we say primary_key is true
-    id = models.UUIDField(primary_key=True,default=uuid.uuid4)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+
     user = models.CharField(max_length=100)
     image = models.ImageField(upload_to='post_images')
     caption = models.TextField()
@@ -28,3 +32,11 @@ class Post(models.Model):
 
     def __str__(self):
         return self.user
+
+
+class LikePost(models.Model):
+    post_id = models.CharField(max_length=500)
+    username = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.username
