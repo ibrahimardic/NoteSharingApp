@@ -13,7 +13,10 @@ from .models import Profile, Post
 def index(request):
     user_object = User.objects.get(username = request.user.username)
     user_profile = Profile.objects.get(user=user_object)
-    return render(request, 'index.html', {'user_profile': user_profile})
+
+    posts = Post.objects.all() # It returns as a list.
+    return render(request, 'index.html', {'user_profile': user_profile, 'posts': posts})
+
 
 @login_required(login_url='signin')
 def upload(request):
