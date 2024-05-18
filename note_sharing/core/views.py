@@ -55,6 +55,27 @@ def like_post(request):
 
 
 def profile(request, pk):
+    user_object = User.objects.get(username=pk)
+    user_profile = Profile.objects.get(user=user_object)
+    user_posts = Post.objects.filter(user=pk)  # pk is the nickname of the user
+    # Getting to show how many posts user has.
+    user_post_length = len(user_posts)
+
+    context = {
+        'user_object': user_object,
+        'user_profile': user_profile,
+        'user_posts': user_posts,
+        'user_post_length': user_post_length
+    }
+    return render(request, 'profile.html', context)
+
+
+def profile(request, pk):
+    user_object = User.objects.get(username=pk)
+    user_profile = Profile.objects.get(user=user_object)
+    user_posts = Post.objects.filter(user=pk)  # pk is the nickname of the user
+    # Getting to show how many posts user has.
+    user_post_length = len(user_posts)
 
     follower = request.user.username
     user = pk
@@ -68,10 +89,15 @@ def profile(request, pk):
     user_following = len(FollowersCount.objects.filter(follower=pk))
 
     context = {
+        'user_object': user_object,
+        'user_profile': user_profile,
+        'user_posts': user_posts,
+        'user_post_length': user_post_length,
         'botton_text': button_text,
         'user_followers': user_followers,
         'user_following': user_following,
     }
+    return render(request, 'profile.html', context)
 
 
 def settings(request):
