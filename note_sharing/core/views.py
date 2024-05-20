@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from .models import Profile, Post, LikePost, FollowersCount
+from itertools import chain
 
 
 # Create your views here.
@@ -12,8 +13,23 @@ def index(request):
     user_object = User.objects.get(username=request.user.username)
     user_profile = Profile.objects.get(user=user_object)
 
+    user_following_list = []
+    feed = []
+
+    user_following = FollowersCount.objects.filter(
+        follower=request.user.username)
+
+    for users in user_following:
+        user_following_list.append(users.user)
+
+    for usernames in user_following_list:
+        feed_lists = Post.objects.filter(user=usernames)
+        feed.append(feed_lists)
+
+    feed_list = list(chain(*feed))
+
     posts = Post.objects.all()  # It returns as a list.
-    return render(request, 'index.html', {'user_profile': user_profile, 'posts': posts})
+    return render(request, 'index.html', {'user_profile': user_profile, 'posts': feed_list})
 
 
 @login_required(login_url='signin')
@@ -54,6 +70,30 @@ def like_post(request):
         return redirect('/')
 
 
+@login_required(login_url='signin')
+def search(request):
+    user_object = User.objects.get(username=request.user.username)
+    user_profile = Profile.objects.get(user=user_object)
+
+    if request.method == 'POST':
+        username = request.POST['username']
+        username_object = User.objects.filter(username__icontains=username)
+
+        username_profile = []
+        username_profile_list = []
+
+        for users in username_object:
+            username_profile.append(users.id)
+
+        for ids in username_profile:
+            profile_lists = Profile.objects.filter(id_user=ids)
+            username_profile_list.append(profile_lists)
+
+        username_profile_list = list(chain(*username_profile_list))
+    return render(request, 'search.html', {'user_profile': user_profile, 'username_profile_list': username_profile_list})
+
+
+@login_required(login_url='signin')
 def profile(request, pk):
     user_object = User.objects.get(username=pk)
     user_profile = Profile.objects.get(user=user_object)
@@ -73,8 +113,7 @@ def profile(request, pk):
 def profile(request, pk):
     user_object = User.objects.get(username=pk)
     user_profile = Profile.objects.get(user=user_object)
-    user_posts = Post.objects.filter(user=pk)  # pk is the nickname of the user
-    # Getting to show how many posts user has.
+    user_posts = Post.objects.filter(user=pk)
     user_post_length = len(user_posts)
 
     follower = request.user.username
@@ -93,7 +132,7 @@ def profile(request, pk):
         'user_profile': user_profile,
         'user_posts': user_posts,
         'user_post_length': user_post_length,
-        'botton_text': button_text,
+        'button_text': button_text,
         'user_followers': user_followers,
         'user_following': user_following,
     }
