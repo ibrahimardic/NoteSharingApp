@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User, auth
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from .zeromq_utils import send_post_via_zeromq
 from .models import Profile, Post, LikePost, FollowersCount
 from itertools import chain
 import random
@@ -30,17 +31,19 @@ def index(request):
 
     posts = Post.objects.all()  # It returns as a list.
 
-    #User suggestion starts
+    # User suggestion starts
     all_users = User.objects.all()
-    user_following_all =[]
+    user_following_all = []
 
     for user in user_following:
         user_list = User.objects.get(username=user.user)
         user_following_all.append(user_list)
 
-    new_suggestions_list = [x for x in list(all_users) if(x not in list(user_following_all))]
-    current_user = User.objects.filter(username = request.user.username)
-    final_suggestions_list = [x for x in list(new_suggestions_list) if (x not in list(current_user))]
+    new_suggestions_list = [x for x in list(
+        all_users) if (x not in list(user_following_all))]
+    current_user = User.objects.filter(username=request.user.username)
+    final_suggestions_list = [x for x in list(
+        new_suggestions_list) if (x not in list(current_user))]
     random.shuffle(final_suggestions_list)
 
     username_profile = []
@@ -49,12 +52,11 @@ def index(request):
     for users in final_suggestions_list:
         username_profile.append(users.id)
     for ids in username_profile:
-        profile_lists = Profile.objects.filter(id_user = ids)
+        profile_lists = Profile.objects.filter(id_user=ids)
         username_profile_list.append(profile_lists)
 
     suggestions_username_profile_lists = list(chain(*username_profile_list))
-    return render(request, 'index.html', {'user_profile': user_profile, 'posts': feed_list, 'suggestions_username_profile_lists':suggestions_username_profile_lists[:4]})
-
+    return render(request, 'index.html', {'user_profile': user_profile, 'posts': feed_list, 'suggestions_username_profile_lists': suggestions_username_profile_lists[:4]})
 
 
 @login_required(login_url='signin')
@@ -63,9 +65,19 @@ def upload(request):
         user = request.user.username
         image = request.FILES.get('image_upload')
         caption = request.POST['caption']
-        # Parameter of models.py - Post
+
+        # Post verisini oluştur
         new_post = Post.objects.create(user=user, image=image, caption=caption)
         new_post.save()
+
+        # Post verisini ZeroMQ üzerinden gönder
+        post_data = {
+            'user': user,
+            'image_url': new_post.image.url,
+            'caption': caption
+        }
+        send_post_via_zeromq(post_data)
+
         return redirect('/')
     else:
         return redirect('/')
