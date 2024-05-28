@@ -8,5 +8,3 @@ def send_post_via_zeromq(post_data):
     socket.connect("tcp://127.0.0.1:5555")
 
     socket.send_json(post_data)
-    socket.close()
-    context.term()
