@@ -2,13 +2,13 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User, auth
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
 from .zeromq_utils import send_post_via_zeromq
 from .models import Profile, Post, LikePost, FollowersCount
 from itertools import chain
 import random
 
 
-# Create your views here.
 @login_required(login_url='signin')
 def index(request):
     user_object = User.objects.get(username=request.user.username)
@@ -27,17 +27,23 @@ def index(request):
         feed_lists = Post.objects.filter(user=usernames)
         feed.append(feed_lists)
 
-    feed_list = list(chain(*feed))
+    own_posts = Post.objects.filter(user=request.user.username)
 
-    posts = Post.objects.all()  # It returns as a list.
+    # Tüm gönderileri birleştirip zamana göre sıralayın
+    feed_list = sorted(chain(*feed, own_posts),
+                       key=lambda x: x.created_at, reverse=True)
 
-    # User suggestion starts
+    # Kullanıcı önerileri
     all_users = User.objects.all()
     user_following_all = []
 
     for user in user_following:
-        user_list = User.objects.get(username=user.user)
-        user_following_all.append(user_list)
+        try:
+            user_list = User.objects.get(username=user.user)
+            user_following_all.append(user_list)
+        except User.DoesNotExist:
+            # Hata durumunda işlemleri yap veya logla
+            continue
 
     new_suggestions_list = [x for x in list(
         all_users) if (x not in list(user_following_all))]
@@ -56,7 +62,11 @@ def index(request):
         username_profile_list.append(profile_lists)
 
     suggestions_username_profile_lists = list(chain(*username_profile_list))
-    return render(request, 'index.html', {'user_profile': user_profile, 'posts': feed_list, 'suggestions_username_profile_lists': suggestions_username_profile_lists[:4]})
+    return render(request, 'index.html', {
+        'user_profile': user_profile,
+        'posts': feed_list,
+        'suggestions_username_profile_lists': suggestions_username_profile_lists[:4]
+    })
 
 
 @login_required(login_url='signin')
@@ -81,6 +91,17 @@ def upload(request):
         return redirect('/')
     else:
         return redirect('/')
+
+
+@login_required(login_url='signin')
+def delete_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    if post.user == request.user.username:
+        post.delete()
+        messages.success(request, "Post deleted successfully")
+    else:
+        messages.error(request, "You are not authorized to delete this post")
+    return redirect('/')
 
 
 @login_required(login_url='signin')
@@ -131,22 +152,6 @@ def search(request):
 
 
 @login_required(login_url='signin')
-def profile(request, pk):
-    user_object = User.objects.get(username=pk)
-    user_profile = Profile.objects.get(user=user_object)
-    user_posts = Post.objects.filter(user=pk)  # pk is the nickname of the user
-    # Getting to show how many posts user has.
-    user_post_length = len(user_posts)
-
-    context = {
-        'user_object': user_object,
-        'user_profile': user_profile,
-        'user_posts': user_posts,
-        'user_post_length': user_post_length
-    }
-    return render(request, 'profile.html', context)
-
-
 def profile(request, pk):
     user_object = User.objects.get(username=pk)
     user_profile = Profile.objects.get(user=user_object)

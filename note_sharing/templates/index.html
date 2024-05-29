@@ -3,7 +3,6 @@
 <!DOCTYPE html>
 <html lang="en">
 
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,8 +14,24 @@
     <link rel="stylesheet" href="{% static 'assets/css/uikit.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/tailwind.css' %}">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        .popup-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .popup-message.error {
+            background-color: #f44336;
+        }
+    </style>
 </head>
 
 <body>
@@ -144,8 +159,8 @@
 
                 <!-- posts-->
 
-                {% for post in posts reversed %}
-                <div class="bg-white shadow rounded-md  -mx-2 lg:mx-0">
+                {% for post in posts %}
+                <div class="bg-white shadow rounded-md -mx-2 lg:mx-0">
 
                     <!-- post header-->
                     <div class="flex justify-between items-center px-4 py-3">
@@ -158,15 +173,18 @@
                             <a href="#"> <i
                                     class="icon-feather-more-horizontal text-2xl hover:bg-gray-200 rounded-full p-2 transition -mr-1 "></i>
                             </a>
-                            <div class="bg-white w-56 shadow-md mx-auto p-2 mt-12 rounded-md text-gray-500 hidden text-base border border-gray-100  "
+                            <div class="bg-white w-56 shadow-md mx-auto p-2 mt-12 rounded-md text-gray-500 hidden text-base border border-gray-100"
                                 uk-drop="mode: hover;pos: top-right">
 
                                 <ul class="space-y-1">
                                     <li>
-                                        <a href="#"
-                                            class="flex items-center px-3 py-2 text-red-500 hover:bg-red-100 hover:text-red-500 rounded-md ">
-                                            <i class="uil-trash-alt mr-1"></i> Delete Post
-                                        </a>
+                                        <form action="{% url 'delete-post' post.id %}" method="POST">
+                                            {% csrf_token %}
+                                            <button type="submit"
+                                                class="flex items-center px-3 py-2 text-red-500 hover:bg-red-100 hover:text-red-500 rounded-md">
+                                                <i class="uil-trash-alt mr-1"></i> Delete Post
+                                            </button>
+                                        </form>
                                     </li>
                                 </ul>
 
@@ -276,24 +294,33 @@
 
     </div>
 
+    <!-- Popup Message -->
+    <div class="popup-message" id="popup-message">
+        {% if messages %}
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+        {% endif %}
+    </div>
 
-
-
-
-
-
-
-    <!-- Scripts
-    ================================================== -->
+    <!-- Scripts -->
     <script src="{% static 'assets/js/tippy.all.min.js' %}"></script>
     <script src="{% static 'assets/js/jquery-3.3.1.min.js' %}"></script>
     <script src="{% static 'assets/js/uikit.js' %}"></script>
     <script src="{% static 'assets/js/simplebar.js' %}"></script>
     <script src="{% static 'assets/js/custom.js' %}"></script>
-
-
     <script src="{% static '../../unpkg.com/ionicons%405.2.3/dist/ionicons.js' %}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var popupMessage = document.getElementById("popup-message");
+            if (popupMessage && popupMessage.innerText.trim() !== "") {
+                popupMessage.style.display = "block";
+                setTimeout(function () {
+                    popupMessage.style.display = "none";
+                }, 3000); // 3 seconds
+            }
+        });
+    </script>
 </body>
-
 
 </html>
